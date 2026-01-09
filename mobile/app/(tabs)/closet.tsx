@@ -15,6 +15,9 @@ import {
     FlatList,
     Dimensions,
     ActivityIndicator,
+    Alert,
+    Modal,
+    TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -22,6 +25,7 @@ import { router } from 'expo-router';
 
 import { Colors, Spacing, BorderRadius, Shadows, Typography, Categories } from '@/constants/Colors';
 import { useWardrobe } from '@/services/hooks';
+import { apiClient } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = (width - Spacing.xl * 2 - Spacing.lg) / 2;
@@ -40,21 +44,49 @@ export default function ClosetScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const [activeCategory, setActiveCategory] = useState('all');
+    const [deletedIds, setDeletedIds] = useState<number[]>([]);
+    const [showSearch, setShowSearch] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Try to use API, fall back to mock data
-    const { items: apiItems, loading, error } = useWardrobe(activeCategory === 'all' ? undefined : activeCategory);
+    const { items: apiItems, loading, error, refresh } = useWardrobe(activeCategory === 'all' ? undefined : activeCategory);
 
     // Use API data if available, otherwise use mock data
-    const wardrobeItems = apiItems.length > 0 ? apiItems : MOCK_WARDROBE;
+    const wardrobeItems = (apiItems.length > 0 ? apiItems : MOCK_WARDROBE).filter(item => !deletedIds.includes(item.id));
 
-    const filteredItems = activeCategory === 'all'
-        ? wardrobeItems
-        : wardrobeItems.filter(item => item.category === activeCategory);
+    // Filter by category and search query
+    const filteredItems = wardrobeItems
+        .filter(item => activeCategory === 'all' || item.category === activeCategory)
+        .filter(item => !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const handleDeleteItem = (item: typeof MOCK_WARDROBE[0]) => {
+        Alert.alert(
+            'Delete Item',
+            `Remove "${item.name}" from your closet?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await apiClient.deleteClothingItem(item.id);
+                            setDeletedIds(prev => [...prev, item.id]);
+                        } catch (e) {
+                            // Still remove from UI even if API fails
+                            setDeletedIds(prev => [...prev, item.id]);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const renderItem = ({ item }: { item: typeof MOCK_WARDROBE[0] }) => (
         <Pressable
             style={[styles.itemCard, { backgroundColor: colors.surface }, Shadows.soft]}
             onPress={() => {/* Navigate to item detail */ }}
+            onLongPress={() => handleDeleteItem(item)}
         >
             <View style={styles.imageContainer}>
                 <Image
@@ -78,7 +110,7 @@ export default function ClosetScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={[styles.title, { color: colors.textMain }]}>my closet</Text>
-                <Pressable style={styles.searchButton}>
+                <Pressable style={styles.searchButton} onPress={() => setShowSearch(true)}>
                     <MaterialIcons name="search" size={28} color={colors.textMain} />
                 </Pressable>
             </View>
@@ -130,8 +162,38 @@ export default function ClosetScreen() {
                 style={[styles.fab, { backgroundColor: colors.primary }, Shadows.primaryGlow]}
                 onPress={() => router.push('/add-item')}
             >
-                <MaterialIcons name="add" size={32} color="#131b0e" />
+                <MaterialIcons name="add" size={32} color="#fff" />
             </Pressable>
+
+            {/* Search Modal */}
+            <Modal visible={showSearch} transparent animationType="fade">
+                <Pressable style={styles.searchOverlay} onPress={() => setShowSearch(false)}>
+                    <View style={[styles.searchContainer, { backgroundColor: colors.surface }]}>
+                        <View style={styles.searchInputRow}>
+                            <MaterialIcons name="search" size={24} color={colors.textMuted} />
+                            <TextInput
+                                style={[styles.searchInput, { color: colors.textMain }]}
+                                placeholder="Search your closet..."
+                                placeholderTextColor={colors.textMuted}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                autoFocus
+                            />
+                            {searchQuery.length > 0 && (
+                                <Pressable onPress={() => setSearchQuery('')}>
+                                    <MaterialIcons name="close" size={20} color={colors.textMuted} />
+                                </Pressable>
+                            )}
+                        </View>
+                        <Pressable
+                            style={[styles.searchDone, { backgroundColor: colors.primary }]}
+                            onPress={() => setShowSearch(false)}
+                        >
+                            <Text style={styles.searchDoneText}>Done</Text>
+                        </Pressable>
+                    </View>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -236,5 +298,37 @@ const styles = StyleSheet.create({
         borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    searchOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-start',
+        paddingTop: 100,
+        paddingHorizontal: Spacing.xl,
+    },
+    searchContainer: {
+        borderRadius: BorderRadius['2xl'],
+        padding: Spacing.lg,
+    },
+    searchInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.md,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: Typography.fontSize.lg,
+        paddingVertical: Spacing.md,
+    },
+    searchDone: {
+        marginTop: Spacing.md,
+        paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+    },
+    searchDoneText: {
+        color: '#fff',
+        fontSize: Typography.fontSize.base,
+        fontWeight: Typography.fontWeight.semibold,
     },
 });

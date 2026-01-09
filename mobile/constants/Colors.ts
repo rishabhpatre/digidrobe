@@ -3,29 +3,29 @@
  * Colors, typography, and spacing constants matching the provided mockups
  */
 
-// Primary brand colors
+// Primary brand colors - Soft pink theme targeting 18-27 female audience
 export const Colors = {
   light: {
-    primary: '#70df20',
-    primaryDark: '#5bc215',
-    background: '#f7f8f6',
-    surface: '#ffffff',
-    textMain: '#131b0e',
-    textSubtle: '#6d9550',
-    textMuted: '#9ca38f',
-    border: '#e8e9e5',
-    accent: '#4c99e6',
+    primary: '#E88B9C',      // Rose pink - main action buttons
+    primaryDark: '#D4707F',  // Darker rose for pressed states
+    background: '#FDF6F7',   // Soft blush background
+    surface: '#ffffff',      // White cards
+    textMain: '#2D2A2E',     // Warm dark gray
+    textSubtle: '#9B7F86',   // Dusty rose text
+    textMuted: '#C4B3B8',    // Light mauve
+    border: '#F0E4E6',       // Pale pink border
+    accent: '#B88B9E',       // Dusty mauve accent
   },
   dark: {
-    primary: '#70df20',
-    primaryDark: '#5bc215',
-    background: '#182111',
-    surface: '#222c1b',
+    primary: '#E88B9C',      // Rose pink
+    primaryDark: '#D4707F',  // Deeper rose
+    background: '#1E1A1B',   // Deep warm black
+    surface: '#2A2426',      // Dark mauve surface
     textMain: '#ffffff',
-    textSubtle: '#9ca38f',
-    textMuted: '#6d9550',
-    border: '#2d3a24',
-    accent: '#4c99e6',
+    textSubtle: '#C4B3B8',
+    textMuted: '#9B7F86',
+    border: '#3D3537',
+    accent: '#B88B9E',
   },
 };
 
@@ -92,7 +92,7 @@ export const Shadows = {
     elevation: 4,
   },
   primaryGlow: {
-    shadowColor: '#70df20',
+    shadowColor: '#E88B9C',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -113,5 +113,5 @@ export const Categories = [
 // API Configuration - Use your Mac's IP for mobile device testing
 // Replace 192.168.1.5 with your Mac's actual IP if different
 export const API_BASE_URL = __DEV__
-  ? 'http://192.168.1.5:5001/api'
+  ? 'http://192.168.1.7:5001/api'
   : 'https://your-production-api.com/api';

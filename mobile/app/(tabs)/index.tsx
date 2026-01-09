@@ -54,18 +54,34 @@ export default function TodayScreen() {
   const [loading, setLoading] = useState(false);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [userName, setUserName] = useState('there');
 
-  const userName = 'rishabh';
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   });
 
-  // Load today's outfit on mount
+  // Load today's outfit and user settings on mount
   useEffect(() => {
     loadOutfit();
+    loadUserName();
   }, []);
+
+  const loadUserName = async () => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const settings = await AsyncStorage.getItem('profileSettings');
+      if (settings) {
+        const parsed = JSON.parse(settings);
+        if (parsed.userName) {
+          setUserName(parsed.userName.toLowerCase());
+        }
+      }
+    } catch (e) {
+      console.log('Error loading username:', e);
+    }
+  };
 
   const loadOutfit = async () => {
     try {

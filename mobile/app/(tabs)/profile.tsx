@@ -15,11 +15,13 @@ import {
     Alert,
     TextInput,
     Modal,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '@/constants/Colors';
 import { apiClient } from '@/services/api';
@@ -39,6 +41,7 @@ export default function ProfileScreen() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [userName, setUserName] = useState('Rishabh');
     const [editingName, setEditingName] = useState('');
+    const [profileImage, setProfileImage] = useState<string | null>(null);
     const tagline = 'Make it feel like you';
 
     // Load saved settings on mount
@@ -60,6 +63,7 @@ export default function ProfileScreen() {
                 if (parsed.currentVibe) setCurrentVibe(parsed.currentVibe);
                 if (parsed.weatherEnabled !== undefined) setWeatherEnabled(parsed.weatherEnabled);
                 if (parsed.dailyInspo !== undefined) setDailyInspo(parsed.dailyInspo);
+                if (parsed.profileImage) setProfileImage(parsed.profileImage);
             }
         } catch (e) {
             console.log('Error loading settings:', e);
@@ -73,6 +77,7 @@ export default function ProfileScreen() {
                 currentVibe,
                 weatherEnabled,
                 dailyInspo,
+                profileImage,
             }));
         } catch (e) {
             console.log('Error saving settings:', e);
@@ -89,6 +94,23 @@ export default function ProfileScreen() {
             setUserName(editingName.trim());
         }
         setShowEditModal(false);
+    };
+
+    const handlePickProfileImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                setProfileImage(result.assets[0].uri);
+            }
+        } catch (e) {
+            console.log('Error picking image:', e);
+        }
     };
 
     const handleResetCloset = () => {
@@ -134,11 +156,15 @@ export default function ProfileScreen() {
                 {/* Avatar */}
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarContainer}>
-                        <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
-                            <View style={styles.avatarGradient} />
-                        </View>
-                        <Pressable style={[styles.editButton, { backgroundColor: colors.accent }]} onPress={handleEditProfile}>
-                            <MaterialIcons name="edit" size={14} color="#fff" />
+                        <Pressable style={[styles.avatar, { backgroundColor: colors.accent }]} onPress={handlePickProfileImage}>
+                            {profileImage ? (
+                                <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+                            ) : (
+                                <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+                            )}
+                        </Pressable>
+                        <Pressable style={[styles.editButton, { backgroundColor: colors.primary }]} onPress={handlePickProfileImage}>
+                            <MaterialIcons name="camera-alt" size={14} color="#fff" />
                         </Pressable>
                     </View>
                     <Text style={[styles.userName, { color: colors.textMain }]}>{userName}</Text>
@@ -279,6 +305,18 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 50,
         overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+    },
+    avatarText: {
+        color: '#fff',
+        fontSize: 40,
+        fontWeight: Typography.fontWeight.bold,
     },
     avatarGradient: {
         flex: 1,
