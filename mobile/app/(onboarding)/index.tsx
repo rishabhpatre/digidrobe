@@ -27,31 +27,41 @@ export default function OnboardingScreen1() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Skip button */}
-            <Pressable
-                style={styles.skipButton}
-                onPress={() => router.replace('/(tabs)')}
-            >
-                <Text style={[styles.skipText, { color: colors.textSubtle }]}>Skip</Text>
-            </Pressable>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+                <MaterialIcons name="checkroom" size={20} color={colors.textMuted} />
+                <Text style={[styles.logoText, { color: colors.textMuted }]}>DIGIDROBE</Text>
+            </View>
 
-            {/* Image Collage */}
+            {/* Image Collage matching new design */}
             <View style={styles.imageArea}>
-                <View style={styles.imageGrid}>
-                    <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400' }}
-                        style={[styles.mainImage, { backgroundColor: colors.surface }]}
-                        resizeMode="cover"
-                    />
+                <View style={styles.imageLayout}>
+                    {/* Main coat image - left side */}
+                    <View style={styles.leftColumn}>
+                        <Image
+                            source={{ uri: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500' }}
+                            style={[styles.mainImage, { backgroundColor: colors.surface }]}
+                            resizeMode="cover"
+                        />
+                        {/* New fit badge */}
+                        <View style={[styles.newFitBadge, { backgroundColor: colors.surface }]}>
+                            <View style={[styles.greenDot, { backgroundColor: colors.primary }]} />
+                            <Text style={[styles.newFitText, { color: colors.textMain }]}>New fit</Text>
+                        </View>
+                    </View>
+
+                    {/* Right column - jeans and sneakers */}
                     <View style={styles.rightColumn}>
                         <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400' }}
+                            source={{ uri: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400' }}
                             style={[styles.smallImage, { backgroundColor: colors.surface }]}
                             resizeMode="cover"
                         />
-                        <View style={[styles.iconBox, { backgroundColor: colors.accent }]}>
-                            <MaterialIcons name="sync" size={32} color="#fff" />
-                        </View>
+                        <Image
+                            source={{ uri: 'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=400' }}
+                            style={[styles.smallImage, { backgroundColor: colors.surface }]}
+                            resizeMode="cover"
+                        />
                     </View>
                 </View>
             </View>
@@ -59,18 +69,11 @@ export default function OnboardingScreen1() {
             {/* Content */}
             <View style={styles.content}>
                 <Text style={[styles.title, { color: colors.textMain }]}>
-                    We remix what you{'\n'}already own.
+                    your clothes.{'\n'}<Text style={[styles.titleBold, { color: colors.textMain }]}>smarter fits.</Text>
                 </Text>
                 <Text style={[styles.subtitle, { color: colors.textSubtle }]}>
-                    Fresh combos daily. Zero shopping{'\n'}required.
+                    digital closet. fresh combos.{'\n'}zero overthinking.
                 </Text>
-            </View>
-
-            {/* Pagination */}
-            <View style={styles.pagination}>
-                <View style={[styles.dot, styles.dotActive, { backgroundColor: colors.primary }]} />
-                <View style={[styles.dot, { backgroundColor: colors.border }]} />
-                <View style={[styles.dot, { backgroundColor: colors.border }]} />
             </View>
 
             {/* CTA Button */}
@@ -78,8 +81,8 @@ export default function OnboardingScreen1() {
                 style={[styles.button, { backgroundColor: colors.primary }, Shadows.primaryGlow]}
                 onPress={() => router.push('/(onboarding)/step2')}
             >
-                <Text style={styles.buttonText}>Let's Dress</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#131b0e" />
+                <Text style={styles.buttonText}>start styling</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#fff" />
             </Pressable>
         </SafeAreaView>
     );
@@ -90,69 +93,81 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: Spacing.xl,
     },
-    skipButton: {
-        alignSelf: 'flex-end',
-        padding: Spacing.md,
+    logoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+        paddingTop: Spacing.lg,
     },
-    skipText: {
-        fontSize: Typography.fontSize.base,
-        fontWeight: Typography.fontWeight.medium,
+    logoText: {
+        fontSize: Typography.fontSize.xs,
+        fontWeight: Typography.fontWeight.semibold,
+        letterSpacing: 2,
     },
     imageArea: {
         flex: 1,
         justifyContent: 'center',
-        paddingVertical: Spacing['2xl'],
+        paddingVertical: Spacing.xl,
     },
-    imageGrid: {
+    imageLayout: {
         flexDirection: 'row',
         gap: Spacing.md,
-        height: 280,
+        height: 320,
+    },
+    leftColumn: {
+        flex: 1.2,
+        position: 'relative',
     },
     mainImage: {
         flex: 1,
-        borderRadius: BorderRadius.xl,
+        borderRadius: BorderRadius['2xl'],
+    },
+    newFitBadge: {
+        position: 'absolute',
+        bottom: Spacing.md,
+        right: -20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        gap: Spacing.xs,
+        ...Shadows.soft,
+    },
+    greenDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    newFitText: {
+        fontSize: Typography.fontSize.sm,
+        fontWeight: Typography.fontWeight.medium,
     },
     rightColumn: {
-        width: 140,
+        flex: 0.8,
         gap: Spacing.md,
     },
     smallImage: {
         flex: 1,
-        borderRadius: BorderRadius.xl,
-    },
-    iconBox: {
-        height: 100,
-        borderRadius: BorderRadius.xl,
-        justifyContent: 'center',
-        alignItems: 'center',
+        borderRadius: BorderRadius['2xl'],
     },
     content: {
         paddingBottom: Spacing['2xl'],
     },
     title: {
-        fontSize: 32,
+        fontSize: 34,
         fontWeight: Typography.fontWeight.bold,
-        lineHeight: 40,
+        lineHeight: 42,
         letterSpacing: -0.5,
+    },
+    titleBold: {
+        fontWeight: Typography.fontWeight.bold,
     },
     subtitle: {
         fontSize: Typography.fontSize.base,
         lineHeight: 24,
         marginTop: Spacing.md,
-    },
-    pagination: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: Spacing.sm,
-        marginBottom: Spacing['2xl'],
-    },
-    dot: {
-        width: 24,
-        height: 4,
-        borderRadius: 2,
-    },
-    dotActive: {
-        width: 32,
     },
     button: {
         flexDirection: 'row',
@@ -166,6 +181,6 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: Typography.fontSize.base,
         fontWeight: Typography.fontWeight.bold,
-        color: '#131b0e',
+        color: '#fff',
     },
 });

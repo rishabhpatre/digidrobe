@@ -55,6 +55,8 @@ export default function TodayScreen() {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [userName, setUserName] = useState('there');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [weather, setWeather] = useState<{ temp: number; condition: string; icon: string } | null>(null);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
@@ -62,13 +64,14 @@ export default function TodayScreen() {
     month: 'short',
   });
 
-  // Load today's outfit and user settings on mount
+  // Load today's outfit, user settings, and weather on mount
   useEffect(() => {
     loadOutfit();
-    loadUserName();
+    loadUserSettings();
+    loadWeather();
   }, []);
 
-  const loadUserName = async () => {
+  const loadUserSettings = async () => {
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const settings = await AsyncStorage.getItem('profileSettings');
@@ -77,10 +80,41 @@ export default function TodayScreen() {
         if (parsed.userName) {
           setUserName(parsed.userName.toLowerCase());
         }
+        if (parsed.profileImage) {
+          setProfileImage(parsed.profileImage);
+        }
       }
     } catch (e) {
-      console.log('Error loading username:', e);
+      console.log('Error loading user settings:', e);
     }
+  };
+
+  const loadWeather = async () => {
+    try {
+      // Using wttr.in free API - no key required
+      const response = await fetch('https://wttr.in/?format=j1');
+      const data = await response.json();
+      const current = data.current_condition[0];
+      setWeather({
+        temp: parseInt(current.temp_C),
+        condition: current.weatherDesc[0].value,
+        icon: getWeatherIcon(current.weatherCode),
+      });
+    } catch (e) {
+      console.log('Weather fetch failed:', e);
+      // Fallback weather
+      setWeather({ temp: 22, condition: 'Sunny', icon: 'wb-sunny' });
+    }
+  };
+
+  const getWeatherIcon = (code: string): string => {
+    const codeNum = parseInt(code);
+    if (codeNum === 113) return 'wb-sunny';
+    if (codeNum >= 116 && codeNum <= 119) return 'cloud';
+    if (codeNum >= 176 && codeNum <= 299) return 'water-drop';
+    if (codeNum >= 300 && codeNum <= 399) return 'grain';
+    if (codeNum >= 500 && codeNum <= 599) return 'ac-unit';
+    return 'wb-cloudy';
   };
 
   const loadOutfit = async () => {
@@ -147,7 +181,11 @@ export default function TodayScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
-            <Text style={styles.avatarText}>R</Text>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+            )}
           </View>
         </View>
         <Pressable
@@ -163,7 +201,15 @@ export default function TodayScreen() {
         <Text style={[styles.greetingText, { color: colors.textMain }]}>
           hey, {userName}
         </Text>
-        <Text style={[styles.dateText, { color: colors.textSubtle }]}>{today}</Text>
+        <View style={styles.dateWeatherRow}>
+          <Text style={[styles.dateText, { color: colors.textSubtle }]}>{today}</Text>
+          {weather && (
+            <View style={[styles.weatherBadge, { backgroundColor: colors.surface }]}>
+              <MaterialIcons name={weather.icon as any} size={16} color={colors.primary} />
+              <Text style={[styles.weatherText, { color: colors.textMain }]}>{weather.temp}°</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Main Outfit Card */}
@@ -313,10 +359,32 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
     letterSpacing: -0.5,
   },
+  dateWeatherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginTop: Spacing.xs,
+  },
   dateText: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
-    marginTop: Spacing.xs,
+  },
+  weatherBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.lg,
+    gap: 4,
+  },
+  weatherText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   scrollView: {
     flex: 1,
