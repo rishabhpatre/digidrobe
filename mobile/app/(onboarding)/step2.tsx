@@ -32,14 +32,17 @@ export default function OnboardingScreen2() {
 
             <View style={styles.imageArea}>
                 <View style={styles.imageGrid}>
+                    {/* Left side - Hoodie image */}
                     <Image
-                        source={{ uri: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400' }}
+                        source={{ uri: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500' }}
                         style={[styles.mainImage, { backgroundColor: colors.surface }]}
                         resizeMode="cover"
                     />
+
+                    {/* Right side - Sneakers and sync icon */}
                     <View style={styles.rightColumn}>
                         <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400' }}
+                            source={{ uri: 'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=400' }}
                             style={[styles.smallImage, { backgroundColor: colors.surface }]}
                             resizeMode="cover"
                         />
@@ -69,8 +72,8 @@ export default function OnboardingScreen2() {
                 style={[styles.button, { backgroundColor: colors.primary }, Shadows.primaryGlow]}
                 onPress={() => router.push('/(onboarding)/step3')}
             >
-                <Text style={styles.buttonText}>Continue</Text>
-                <MaterialIcons name="arrow-forward" size={20} color="#131b0e" />
+                <Text style={styles.buttonText}>Let's Dress</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#fff" />
             </Pressable>
         </SafeAreaView>
     );
@@ -97,11 +100,11 @@ const styles = StyleSheet.create({
     imageGrid: {
         flexDirection: 'row',
         gap: Spacing.md,
-        height: 280,
+        height: 320,
     },
     mainImage: {
         flex: 1,
-        borderRadius: BorderRadius.xl,
+        borderRadius: BorderRadius['2xl'],
     },
     rightColumn: {
         width: 140,
@@ -109,11 +112,11 @@ const styles = StyleSheet.create({
     },
     smallImage: {
         flex: 1,
-        borderRadius: BorderRadius.xl,
+        borderRadius: BorderRadius['2xl'],
     },
     iconBox: {
         height: 100,
-        borderRadius: BorderRadius.xl,
+        borderRadius: BorderRadius['2xl'],
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -157,6 +160,6 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: Typography.fontSize.base,
         fontWeight: Typography.fontWeight.bold,
-        color: '#131b0e',
+        color: '#fff',
     },
 });
