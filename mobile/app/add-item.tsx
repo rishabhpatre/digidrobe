@@ -15,6 +15,8 @@ import {
     Alert,
     ActivityIndicator,
     TextInput,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -195,148 +197,151 @@ export default function AddItemScreen() {
                 <View style={styles.placeholder} />
             </View>
 
-            {/* Progress dots */}
-            <View style={styles.progress}>
-                <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-                <View style={[styles.dot, { backgroundColor: image ? colors.primary : colors.border }]} />
-            </View>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* Image Area */}
-                <Pressable
-                    style={[styles.imageArea, { backgroundColor: colors.surface }, Shadows.soft]}
-                    onPress={image ? undefined : pickImage}
-                >
-                    {image ? (
-                        <Image source={{ uri: image }} style={styles.image} resizeMode="cover" />
-                    ) : (
-                        <View style={styles.uploadPlaceholder}>
-                            <MaterialIcons name="add-a-photo" size={48} color={colors.textMuted} />
-                            <Text style={[styles.uploadText, { color: colors.textSubtle }]}>
-                                Tap to add a photo
-                            </Text>
-                        </View>
-                    )}
-
-                    {processing && (
-                        <View style={styles.processingOverlay}>
-                            <ActivityIndicator size="large" color={colors.primary} />
-                            <Text style={[styles.processingText, { color: colors.textMain }]}>
-                                Analyzing...
-                            </Text>
-                        </View>
-                    )}
-                </Pressable>
-
-                {/* Camera/Gallery/URL buttons */}
-                {!image && (
-                    <View style={styles.captureButtons}>
-                        <Pressable
-                            style={[styles.captureButton, { backgroundColor: colors.surface }, Shadows.soft]}
-                            onPress={takePhoto}
-                        >
-                            <MaterialIcons name="camera-alt" size={24} color={colors.textMain} />
-                            <Text style={[styles.captureText, { color: colors.textMain }]}>Camera</Text>
-                        </Pressable>
-                        <Pressable
-                            style={[styles.captureButton, { backgroundColor: colors.surface }, Shadows.soft]}
-                            onPress={pickImage}
-                        >
-                            <MaterialIcons name="photo-library" size={24} color={colors.textMain} />
-                            <Text style={[styles.captureText, { color: colors.textMain }]}>Gallery</Text>
-                        </Pressable>
-                    </View>
-                )}
-
-                {/* URL Input */}
-                {!image && (
-                    <View style={styles.urlSection}>
-                        <Text style={[styles.urlLabel, { color: colors.textSubtle }]}>OR PASTE A SHOPPING LINK</Text>
-                        <View style={[styles.urlInputRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                            <MaterialIcons name="link" size={20} color={colors.textMuted} />
-                            <TextInput
-                                style={[styles.urlInput, { color: colors.textMain }]}
-                                placeholder="https://zara.com/..."
-                                placeholderTextColor={colors.textMuted}
-                                value={urlInput}
-                                onChangeText={setUrlInput}
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                keyboardType="url"
-                            />
-                            <Pressable
-                                style={[styles.fetchButton, { backgroundColor: colors.primary }]}
-                                onPress={fetchFromUrl}
-                                disabled={fetchingUrl}
-                            >
-                                {fetchingUrl ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <MaterialIcons name="arrow-forward" size={18} color="#fff" />
-                                )}
-                            </Pressable>
-                        </View>
-                    </View>
-                )}
-
-                {/* Expand button */}
-                {image && (
-                    <View style={styles.expandRow}>
-                        <Pressable style={styles.expandButton}>
-                            <MaterialIcons name="fullscreen" size={24} color={colors.textSubtle} />
-                        </Pressable>
-                    </View>
-                )}
-
-                {/* AI Detected Tags */}
-                {tags.length > 0 && (
-                    <View style={styles.tagsSection}>
-                        <View style={styles.tagsHeader}>
-                            <Text style={[styles.tagsTitle, { color: colors.textSubtle }]}>
-                                AI DETECTED TAGS
-                            </Text>
-                            <Pressable>
-                                <Text style={[styles.editAll, { color: colors.primary }]}>Edit all</Text>
-                            </Pressable>
-                        </View>
-                        <View style={styles.tagsContainer}>
-                            {tags.map((tag) => (
+                    {/* URL Input - First in view */}
+                    {!image && (
+                        <View style={styles.urlSection}>
+                            <Text style={[styles.urlLabel, { color: colors.textSubtle }]}>PASTE A SHOPPING LINK</Text>
+                            <View style={[styles.urlInputRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                                <MaterialIcons name="link" size={20} color={colors.textMuted} />
+                                <TextInput
+                                    style={[styles.urlInput, { color: colors.textMain }]}
+                                    placeholder="https://zara.com/..."
+                                    placeholderTextColor={colors.textMuted}
+                                    value={urlInput}
+                                    onChangeText={setUrlInput}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    keyboardType="url"
+                                />
                                 <Pressable
-                                    key={tag.id}
-                                    style={[styles.tag, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                                    onPress={() => removeTag(tag.id)}
+                                    style={[styles.fetchButton, { backgroundColor: colors.primary }]}
+                                    onPress={fetchFromUrl}
+                                    disabled={fetchingUrl}
                                 >
-                                    <MaterialIcons name={tag.icon as any} size={16} color={colors.textSubtle} />
-                                    <Text style={[styles.tagText, { color: colors.textMain }]}>{tag.label}</Text>
+                                    {fetchingUrl ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <MaterialIcons name="arrow-forward" size={18} color="#fff" />
+                                    )}
                                 </Pressable>
-                            ))}
-                            <Pressable style={[styles.addTag, { borderColor: colors.border }]}>
-                                <MaterialIcons name="add" size={16} color={colors.textSubtle} />
-                                <Text style={[styles.tagText, { color: colors.textSubtle }]}>tag</Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Divider */}
+                    {!image && (
+                        <View style={styles.dividerRow}>
+                            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                            <Text style={[styles.dividerText, { color: colors.textMuted }]}>or</Text>
+                            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                        </View>
+                    )}
+
+                    {/* Image Area - Smaller */}
+                    <Pressable
+                        style={[styles.imageArea, { backgroundColor: colors.surface }, Shadows.soft]}
+                        onPress={image ? undefined : pickImage}
+                    >
+                        {image ? (
+                            <Image source={{ uri: image }} style={styles.image} resizeMode="cover" />
+                        ) : (
+                            <View style={styles.uploadPlaceholder}>
+                                <MaterialIcons name="add-a-photo" size={40} color={colors.textMuted} />
+                                <Text style={[styles.uploadText, { color: colors.textSubtle }]}>
+                                    Tap to add a photo
+                                </Text>
+                            </View>
+                        )}
+
+                        {processing && (
+                            <View style={styles.processingOverlay}>
+                                <ActivityIndicator size="large" color={colors.primary} />
+                                <Text style={[styles.processingText, { color: colors.textMain }]}>
+                                    Analyzing...
+                                </Text>
+                            </View>
+                        )}
+                    </Pressable>
+
+                    {/* Camera/Gallery buttons */}
+                    {!image && (
+                        <View style={styles.captureButtons}>
+                            <Pressable
+                                style={[styles.captureButton, { backgroundColor: colors.surface }, Shadows.soft]}
+                                onPress={takePhoto}
+                            >
+                                <MaterialIcons name="camera-alt" size={24} color={colors.textMain} />
+                                <Text style={[styles.captureText, { color: colors.textMain }]}>Camera</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.captureButton, { backgroundColor: colors.surface }, Shadows.soft]}
+                                onPress={pickImage}
+                            >
+                                <MaterialIcons name="photo-library" size={24} color={colors.textMain} />
+                                <Text style={[styles.captureText, { color: colors.textMain }]}>Gallery</Text>
                             </Pressable>
                         </View>
-                    </View>
-                )}
-            </ScrollView>
+                    )}
 
-            {/* Bottom CTA */}
-            {image && !processing && (
-                <View style={styles.bottomSection}>
-                    <Pressable
-                        style={[styles.addButton, { backgroundColor: colors.primary }, Shadows.primaryGlow]}
-                        onPress={addToWardrobe}
-                    >
-                        <Text style={styles.addButtonText}>add to wardrobe</Text>
-                        <MaterialIcons name="arrow-forward" size={20} color="#131b0e" />
-                    </Pressable>
-                    <Pressable>
-                        <Text style={[styles.fixBackground, { color: colors.textSubtle }]}>
-                            is the background clean?{' '}
-                            <Text style={{ color: colors.accent }}>fix it manually</Text>
-                        </Text>
-                    </Pressable>
-                </View>
-            )}
+                    {/* Expand button */}
+                    {image && (
+                        <View style={styles.expandRow}>
+                            <Pressable style={styles.expandButton}>
+                                <MaterialIcons name="fullscreen" size={24} color={colors.textSubtle} />
+                            </Pressable>
+                        </View>
+                    )}
+
+                    {/* AI Detected Tags */}
+                    {tags.length > 0 && (
+                        <View style={styles.tagsSection}>
+                            <View style={styles.tagsHeader}>
+                                <Text style={[styles.tagsTitle, { color: colors.textSubtle }]}>
+                                    AI DETECTED TAGS
+                                </Text>
+                                <Pressable>
+                                    <Text style={[styles.editAll, { color: colors.primary }]}>Edit all</Text>
+                                </Pressable>
+                            </View>
+                            <View style={styles.tagsContainer}>
+                                {tags.map((tag) => (
+                                    <Pressable
+                                        key={tag.id}
+                                        style={[styles.tag, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                                        onPress={() => removeTag(tag.id)}
+                                    >
+                                        <MaterialIcons name={tag.icon as any} size={16} color={colors.textSubtle} />
+                                        <Text style={[styles.tagText, { color: colors.textMain }]}>{tag.label}</Text>
+                                    </Pressable>
+                                ))}
+                                <Pressable style={[styles.addTag, { borderColor: colors.border }]}>
+                                    <MaterialIcons name="add" size={16} color={colors.textSubtle} />
+                                    <Text style={[styles.tagText, { color: colors.textSubtle }]}>tag</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Bottom CTA */}
+                    {image && !processing && (
+                        <View style={styles.bottomSection}>
+                            <Pressable
+                                style={[styles.addButton, { backgroundColor: colors.primary }, Shadows.primaryGlow]}
+                                onPress={addToWardrobe}
+                            >
+                                <Text style={styles.addButtonText}>add to wardrobe</Text>
+                                <MaterialIcons name="arrow-forward" size={20} color="#fff" />
+                            </Pressable>
+                        </View>
+                    )}
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
@@ -535,5 +540,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 4,
+    },
+    dividerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: Spacing.lg,
+        paddingHorizontal: Spacing.xl,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+    },
+    dividerText: {
+        marginHorizontal: Spacing.md,
+        fontSize: Typography.fontSize.sm,
+        fontWeight: Typography.fontWeight.medium,
     },
 });
