@@ -141,6 +141,9 @@ export default function TodayScreen() {
       const newOutfit = await apiClient.generateOutfit();
       if (newOutfit && newOutfit.items) {
         setOutfit(newOutfit);
+        // Reset states for new outfit
+        setLiked(false);
+        setSaved(false);
       }
     } catch (e) {
       console.log('Failed to generate outfit:', e);
@@ -151,27 +154,30 @@ export default function TodayScreen() {
     }
   };
 
-  const handleLike = async () => {
-    const newLiked = !liked;
-    setLiked(newLiked);
-    try {
-      if (outfit.id) {
-        await apiClient.submitOutfitFeedback(outfit.id, { liked: newLiked });
-      }
-    } catch (e) {
-      console.log('Failed to submit feedback:', e);
-    }
-  };
-
   const handleSave = async () => {
-    const newSaved = !saved;
-    setSaved(newSaved);
+    if (!outfit) return;
     try {
+      const newSaved = !saved;
+      setSaved(newSaved);
       if (outfit.id) {
         await apiClient.submitOutfitFeedback(outfit.id, { saved: newSaved });
       }
     } catch (e) {
       console.log('Failed to save outfit:', e);
+    }
+  };
+
+  const handleWorn = async () => {
+    if (!outfit) return;
+    try {
+      setLiked(true); // Visual feedback
+      if (outfit.id) {
+        // Cast to any to bypass strict type checking for 'worn' temporarily
+        await apiClient.submitOutfitFeedback(outfit.id, { worn: true } as any);
+        Alert.alert('Nice Fit!', 'Marked as worn. Your clothes usage stats have been updated.');
+      }
+    } catch (e) {
+      console.log('Failed to mark worn:', e);
     }
   };
 
@@ -190,9 +196,9 @@ export default function TodayScreen() {
         </View>
         <Pressable
           style={[styles.settingsButton, { backgroundColor: colors.surface }]}
-          onPress={() => router.push('/profile')}
+          onPress={() => router.push('/history')}
         >
-          <MaterialIcons name="settings" size={24} color={colors.textSubtle} />
+          <MaterialIcons name="history" size={24} color={colors.textSubtle} />
         </Pressable>
       </View>
 
@@ -282,30 +288,34 @@ export default function TodayScreen() {
       {/* Floating Action Dock */}
       <View style={styles.dockContainer}>
         <View style={[styles.dock, { backgroundColor: colorScheme === 'dark' ? 'rgba(34, 44, 27, 0.9)' : 'rgba(255, 255, 255, 0.9)' }]}>
-          {/* Refresh */}
+
+          {/* Skip (Refresh) */}
           <Pressable style={styles.dockButton} onPress={handleRefresh}>
-            <MaterialIcons name="autorenew" size={28} color={colors.textMuted} />
+            <MaterialIcons name="close" size={28} color={colors.textMuted} />
+            <Text style={{ fontSize: 10, color: colors.textSubtle, marginTop: 2 }}>Skip</Text>
           </Pressable>
 
-          {/* Like (Primary) */}
+          {/* Worn (Primary) */}
           <Pressable
-            style={[styles.likeButton, { backgroundColor: colors.accent }, Shadows.medium]}
-            onPress={handleLike}
+            style={[styles.likeButton, { backgroundColor: colors.primary }, Shadows.medium]}
+            onPress={handleWorn}
           >
             <MaterialIcons
-              name={liked ? 'favorite' : 'favorite-border'}
+              name={liked ? 'check-circle' : 'check'}
               size={32}
               color="#fff"
             />
+            <Text style={{ fontSize: 10, color: '#fff', marginTop: 2, fontWeight: 'bold' }}>WORN</Text>
           </Pressable>
 
           {/* Save */}
           <Pressable style={styles.dockButton} onPress={handleSave}>
             <MaterialIcons
-              name={saved ? 'bookmark' : 'bookmark-border'}
+              name={saved ? "bookmark" : "bookmark-border"}
               size={28}
-              color={saved ? colors.primary : colors.textMuted}
+              color={saved ? colors.accent : colors.textMuted}
             />
+            <Text style={{ fontSize: 10, color: colors.textSubtle, marginTop: 2 }}>Save</Text>
           </Pressable>
         </View>
       </View>

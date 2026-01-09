@@ -435,6 +435,19 @@ def outfit_feedback(outfit_id):
     outfit = Outfit.query.get_or_404(outfit_id)
     data = request.json
     
+    # 'worn' feedback updates item stats
+    if 'worn' in data and data['worn']:
+        outfit.is_liked = True # Use is_liked to store 'worn' status for now
+        
+        # Update wear counts for all items
+        item_ids = [outfit.top_id, outfit.bottom_id, outfit.layer_id, outfit.shoes_id, outfit.accessory_id]
+        for iid in item_ids:
+            if iid:
+                item = ClothingItem.query.get(iid)
+                if item:
+                    item.wear_count += 1
+                    item.last_worn = datetime.utcnow()
+                    
     if 'liked' in data:
         outfit.is_liked = data['liked']
     if 'saved' in data:

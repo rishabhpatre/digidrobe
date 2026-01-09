@@ -11,70 +11,57 @@ import {
     Image,
     Pressable,
     useColorScheme,
-    ScrollView,
     FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
-import { Colors, Spacing, BorderRadius, Shadows, Typography } from '@/constants/Colors';
-
-// Mock data for history
-const MOCK_HISTORY = [
-    {
-        id: 1,
-        date: 'Yesterday',
-        items: [
-            { uri: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=200' },
-            { uri: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=200' },
-            { uri: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=200' },
-        ],
-        feedback: 'loved',
-        note: 'You looked cozy. This combo is a keeper.',
-    },
-    {
-        id: 2,
-        date: 'Oct 22',
-        items: [
-            { uri: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=200' },
-            { uri: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=200' },
-        ],
-        feedback: 'skipped',
-        note: "Let's try this one again soon.",
-    },
-    {
-        id: 3,
-        date: 'Friday Night',
-        items: [
-            { uri: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=200' },
-            { uri: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=200' },
-        ],
-        feedback: 'saved',
-        note: "Smart for the weekend. Don't forget the accessories.",
-    },
-    {
-        id: 4,
-        date: 'Oct 18',
-        items: [
-            { uri: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=200' },
-            { uri: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=200' },
-        ],
-        feedback: 'loved',
-        note: 'Office chic. Simple and effective.',
-    },
-];
-
-const FILTERS = ['All', 'Saved', 'Skipped'];
+import { Colors, Spacing, BorderRadius, Typography } from '@/constants/Colors';
+import { apiClient, Outfit } from '@/services/api';
 
 export default function HistoryScreen() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
     const [activeFilter, setActiveFilter] = React.useState('All');
+    const [history, setHistory] = React.useState<Outfit[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        loadHistory();
+    }, []);
+
+    const loadHistory = async () => {
+        try {
+            const data = await apiClient.getOutfitHistory();
+            setHistory(data);
+        } catch (e) {
+            console.log('Failed to load history:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getFeedbackStatus = (item: Outfit) => {
+        if (item.isLiked) return 'worn'; // Mapped isLiked -> worn
+        if (item.isSaved) return 'saved';
+        return 'skipped';
+    };
+
+    const FILTERS = ['All', 'Worn', 'Saved', 'Skipped']; // 'Worn' instead of 'Loved'
+
+    const filteredHistory = history.filter(item => {
+        if (activeFilter === 'All') return true;
+        const status = getFeedbackStatus(item);
+        if (activeFilter === 'Worn') return status === 'worn';
+        if (activeFilter === 'Saved') return status === 'saved';
+        if (activeFilter === 'Skipped') return status === 'skipped';
+        return true;
+    });
 
     const getFeedbackColor = (feedback: string) => {
         switch (feedback) {
-            case 'loved': return colors.primary;
+            case 'worn': return colors.primary;
             case 'saved': return colors.accent;
             case 'skipped': return colors.textMuted;
             default: return colors.textSubtle;
@@ -83,37 +70,45 @@ export default function HistoryScreen() {
 
     const getFeedbackIcon = (feedback: string) => {
         switch (feedback) {
-            case 'loved': return 'favorite';
+            case 'worn': return 'check-circle'; // Worn icon
             case 'saved': return 'bookmark';
-            case 'skipped': return 'skip-next';
-            default: return 'check';
+            case 'skipped': return 'close';
+            default: return 'help-outline';
         }
     };
 
-    const renderHistoryItem = ({ item }: { item: typeof MOCK_HISTORY[0] }) => (
+    const renderHistoryItem = ({ item }: { item: Outfit }) => (
         <View style={styles.historyItem}>
             <View style={styles.dateRow}>
-                <Text style={[styles.dateText, { color: colors.textMain }]}>{item.date}</Text>
-                <View style={[styles.feedbackBadge, { backgroundColor: getFeedbackColor(item.feedback) }]}>
-                    <MaterialIcons name={getFeedbackIcon(item.feedback) as any} size={14} color="#fff" />
+                <Text style={[styles.dateText, { color: colors.textMain }]}>
+                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Unknown Date'}
+                </Text>
+                <View style={[styles.feedbackBadge, { backgroundColor: getFeedbackColor(getFeedbackStatus(item)) }]}>
+                    <MaterialIcons name={getFeedbackIcon(getFeedbackStatus(item)) as any} size={14} color="#fff" />
                 </View>
             </View>
 
             <View style={styles.outfitPreview}>
-                {item.items.slice(0, 3).map((img, idx) => (
-                    <Image
-                        key={idx}
-                        source={{ uri: img.uri }}
-                        style={[
-                            styles.previewImage,
-                            { backgroundColor: colors.surface },
-                            idx > 0 && { marginLeft: -40 },
-                        ]}
-                    />
-                ))}
+                {item.items && Object.values(item.items).slice(0, 3).map((clothingItem, idx) => {
+                    // Check if proper clothing item or just URI
+                    const uri = (clothingItem as any).imagePath || (clothingItem as any).uri;
+                    if (!uri) return null;
+
+                    return (
+                        <Image
+                            key={idx}
+                            source={{ uri }}
+                            style={[
+                                styles.previewImage,
+                                { backgroundColor: colors.surface },
+                                idx > 0 && { marginLeft: -40 },
+                            ]}
+                        />
+                    );
+                })}
             </View>
 
-            <Text style={[styles.noteText, { color: colors.textSubtle }]}>{item.note}</Text>
+            <Text style={[styles.noteText, { color: colors.textSubtle }]}>{item.description}</Text>
         </View>
     );
 
@@ -153,7 +148,7 @@ export default function HistoryScreen() {
 
             {/* History list */}
             <FlatList
-                data={MOCK_HISTORY}
+                data={filteredHistory}
                 renderItem={renderHistoryItem}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={styles.listContent}
@@ -161,6 +156,11 @@ export default function HistoryScreen() {
                 ItemSeparatorComponent={() => (
                     <View style={[styles.separator, { backgroundColor: colors.border }]} />
                 )}
+                ListEmptyComponent={
+                    <Text style={{ textAlign: 'center', marginTop: 50, color: colors.textSubtle }}>
+                        No history yet. Start exploring outfits!
+                    </Text>
+                }
             />
         </SafeAreaView>
     );
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
         fontWeight: Typography.fontWeight.bold,
     },
     placeholder: {
-        width: 40,
+        width: 40, // Balance the back button
     },
     filterRow: {
         flexDirection: 'row',
