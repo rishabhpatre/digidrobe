@@ -172,6 +172,14 @@ class ApiClient {
             body: JSON.stringify({ url }),
         });
     }
+
+    // Process image from URL with AI
+    async processImageFromUrl(imageUrl: string): Promise<ProcessedImage & { originalUrl: string }> {
+        return this.request('/process-image-url', {
+            method: 'POST',
+            body: JSON.stringify({ imageUrl }),
+        });
+    }
 }
 
 export const apiClient = new ApiClient();

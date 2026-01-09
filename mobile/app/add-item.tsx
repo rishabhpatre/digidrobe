@@ -100,21 +100,85 @@ export default function AddItemScreen() {
 
         setFetchingUrl(true);
         try {
+            // Step 1: Extract image URL from the page
             const result = await apiClient.extractImageFromUrl(urlInput.trim());
+
             if (result.success && result.imageUrl) {
+                // Show analyzing state
+                setFetchingUrl(false);
+                setProcessing(true);
                 setImage(result.imageUrl);
                 setIsFromUrl(true);
-                // Don't set category - let user pick manually
-                setTags([
-                    { id: 'style', label: 'casual', icon: 'style' },
-                ]);
-                setItemName('new item');
                 setUrlInput('');
+
+                // Step 2: Process the image with AI
+                try {
+                    const aiResult = await apiClient.processImageFromUrl(result.imageUrl);
+
+                    setProcessedData(aiResult);
+
+                    // Auto-select category if detected
+                    if (aiResult.category && ['tops', 'bottoms', 'layers', 'shoes', 'accessories'].includes(aiResult.category)) {
+                        setSelectedCategory(aiResult.category);
+                    }
+
+                    // Generate tags from AI results
+                    const newTags: Tag[] = [];
+
+                    // Add Category tag
+                    if (aiResult.category) {
+                        const iconMap: Record<string, string> = {
+                            'tops': 'checkroom',
+                            'bottoms': 'straighten',
+                            'layers': 'layers',
+                            'shoes': 'directions-walk',
+                            'accessories': 'watch'
+                        };
+                        newTags.push({ id: 'cat', label: aiResult.category, icon: iconMap[aiResult.category] || 'checkroom' });
+                    }
+
+                    // Add Color tags
+                    if (aiResult.primaryColor) {
+                        newTags.push({ id: 'color1', label: aiResult.primaryColor, icon: 'palette' });
+                    }
+
+                    // Add Style tag
+                    if (aiResult.style) {
+                        newTags.push({ id: 'style', label: aiResult.style, icon: 'style' });
+                    }
+
+                    // Add Season tag
+                    if (aiResult.season) {
+                        const seasonIconMap: Record<string, string> = {
+                            'summer': 'wb-sunny',
+                            'winter': 'ac-unit',
+                            'all-season': 'all-inclusive'
+                        };
+                        newTags.push({
+                            id: 'season',
+                            label: aiResult.season,
+                            icon: seasonIconMap[aiResult.season] || 'calendar-today'
+                        });
+                    }
+
+                    setTags(newTags);
+
+                    // Generate name
+                    const name = `${aiResult.primaryColor || ''} ${aiResult.category || 'item'}`.trim();
+                    setItemName(name);
+
+                } catch (aiError) {
+                    console.error('AI processing failed for URL:', aiError);
+                    // Fallback if AI fails: let user manual select
+                    setTags([{ id: 'style', label: 'casual', icon: 'style' }]);
+                    setItemName('new item');
+                } finally {
+                    setProcessing(false);
+                }
             }
         } catch (error: any) {
             console.error('URL fetch failed:', error);
             Alert.alert('Error', 'Could not extract image from this URL. Try a different link.');
-        } finally {
             setFetchingUrl(false);
         }
     };

@@ -322,6 +322,84 @@ def extract_image_from_url():
         return jsonify({'error': f'Failed to extract image: {str(e)}'}), 500
 
 
+@app.route('/api/process-image-url', methods=['POST'])
+def process_image_from_url():
+    """
+    Process an image from a URL:
+    - Download the image
+    - Remove background
+    - Detect category
+    - Extract colors
+    - Detect attributes
+    """
+    import requests as req
+    from io import BytesIO
+    from PIL import Image
+    import uuid
+    import os
+    
+    data = request.json
+    image_url = data.get('imageUrl', '').strip()
+    
+    if not image_url:
+        return jsonify({'error': 'Image URL is required'}), 400
+    
+    try:
+        # Download the image
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        }
+        response = req.get(image_url, headers=headers, timeout=15)
+        response.raise_for_status()
+        
+        # Open as PIL Image
+        image = Image.open(BytesIO(response.content)).convert('RGB')
+        
+        # Process with our AI
+        from services.image_processor import ImageProcessor
+        processor = ImageProcessor()
+        
+        # Remove background
+        processed_image = processor.remove_background(image)
+        
+        # Detect category
+        category = processor.detect_category(image)
+        
+        # Extract colors
+        colors = processor.extract_colors(processed_image)
+        
+        # Detect attributes
+        attributes = processor.detect_attributes(image, category, colors)
+        
+        # Save processed image
+        filename = f"{uuid.uuid4().hex}.png"
+        save_path = os.path.join('uploads', filename)
+        os.makedirs('uploads', exist_ok=True)
+        processed_image.save(save_path, 'PNG')
+        
+        return jsonify({
+            'success': True,
+            'imagePath': save_path,
+            'originalUrl': image_url,
+            'category': category,
+            'primaryColor': colors[0] if colors else None,
+            'secondaryColor': colors[1] if len(colors) > 1 else None,
+            'style': attributes.get('style'),
+            'season': attributes.get('season'),
+            'tags': attributes.get('tags', [])
+        })
+        
+    except req.exceptions.Timeout:
+        return jsonify({'error': 'Image download timed out'}), 408
+    except req.exceptions.RequestException as e:
+        return jsonify({'error': f'Failed to download image: {str(e)}'}), 400
+    except Exception as e:
+        print(f"Error processing URL image: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to process image: {str(e)}'}), 500
+
+
 @app.route('/api/outfit/today', methods=['GET'])
 def get_todays_outfit():
     """Get today's recommended outfit"""
