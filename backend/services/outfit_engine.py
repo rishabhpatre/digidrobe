@@ -209,8 +209,12 @@ class OutfitEngine:
             return None
         
         # Safe getters
-        ref_color = (reference_item.get('primaryColor') or '').lower()
-        ref_style = (reference_item.get('style') or 'casual')
+        ref_color = ''
+        ref_style = 'casual'
+        
+        if reference_item:
+            ref_color = (reference_item.get('primaryColor') or '').lower()
+            ref_style = (reference_item.get('style') or 'casual')
         
         scored_items = []
         
