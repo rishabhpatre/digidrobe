@@ -3,7 +3,7 @@
  * Matches the "Profile and settings screen" design mockup
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,11 +12,17 @@ import {
     Pressable,
     Switch,
     useColorScheme,
+    Alert,
+    TextInput,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '@/constants/Colors';
+import { apiClient } from '@/services/api';
 
 const VIBES = [
     { key: 'chill', label: 'Chill', icon: 'cloud' },
@@ -30,9 +36,97 @@ export default function ProfileScreen() {
     const [currentVibe, setCurrentVibe] = useState('clean');
     const [weatherEnabled, setWeatherEnabled] = useState(true);
     const [dailyInspo, setDailyInspo] = useState(false);
-
-    const userName = 'Rishabh';
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [userName, setUserName] = useState('Rishabh');
+    const [editingName, setEditingName] = useState('');
     const tagline = 'Make it feel like you';
+
+    // Load saved settings on mount
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    // Save settings when they change
+    useEffect(() => {
+        saveSettings();
+    }, [currentVibe, weatherEnabled, dailyInspo, userName]);
+
+    const loadSettings = async () => {
+        try {
+            const settings = await AsyncStorage.getItem('profileSettings');
+            if (settings) {
+                const parsed = JSON.parse(settings);
+                if (parsed.userName) setUserName(parsed.userName);
+                if (parsed.currentVibe) setCurrentVibe(parsed.currentVibe);
+                if (parsed.weatherEnabled !== undefined) setWeatherEnabled(parsed.weatherEnabled);
+                if (parsed.dailyInspo !== undefined) setDailyInspo(parsed.dailyInspo);
+            }
+        } catch (e) {
+            console.log('Error loading settings:', e);
+        }
+    };
+
+    const saveSettings = async () => {
+        try {
+            await AsyncStorage.setItem('profileSettings', JSON.stringify({
+                userName,
+                currentVibe,
+                weatherEnabled,
+                dailyInspo,
+            }));
+        } catch (e) {
+            console.log('Error saving settings:', e);
+        }
+    };
+
+    const handleEditProfile = () => {
+        setEditingName(userName);
+        setShowEditModal(true);
+    };
+
+    const handleSaveProfile = () => {
+        if (editingName.trim()) {
+            setUserName(editingName.trim());
+        }
+        setShowEditModal(false);
+    };
+
+    const handleResetCloset = () => {
+        Alert.alert(
+            'Reset Closet',
+            'This will remove all your clothing items. This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Reset',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            // Get all items and delete them
+                            const items = await apiClient.getWardrobe();
+                            for (const item of items) {
+                                await apiClient.deleteClothingItem(item.id);
+                            }
+                            Alert.alert('Done', 'Your closet has been reset.');
+                        } catch (e) {
+                            Alert.alert('Error', 'Failed to reset closet. Please try again.');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleVibeChange = (vibe: string) => {
+        setCurrentVibe(vibe);
+        // Show feedback
+        const vibeLabels: Record<string, string> = {
+            chill: 'Relaxed & casual',
+            clean: 'Minimal & polished',
+            smart: 'Sharp & professional',
+        };
+        // Haptic feedback would go here in production
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -43,7 +137,7 @@ export default function ProfileScreen() {
                         <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
                             <View style={styles.avatarGradient} />
                         </View>
-                        <Pressable style={[styles.editButton, { backgroundColor: colors.accent }]}>
+                        <Pressable style={[styles.editButton, { backgroundColor: colors.accent }]} onPress={handleEditProfile}>
                             <MaterialIcons name="edit" size={14} color="#fff" />
                         </Pressable>
                     </View>
@@ -62,7 +156,7 @@ export default function ProfileScreen() {
                                     styles.vibeOption,
                                     currentVibe === vibe.key && { backgroundColor: colors.background },
                                 ]}
-                                onPress={() => setCurrentVibe(vibe.key)}
+                                onPress={() => handleVibeChange(vibe.key)}
                             >
                                 <MaterialIcons
                                     name={vibe.icon as any}
@@ -128,13 +222,38 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Reset */}
-                <Pressable style={[styles.resetButton, { borderColor: colors.border }]}>
+                <Pressable style={[styles.resetButton, { borderColor: colors.border }]} onPress={handleResetCloset}>
                     <MaterialIcons name="refresh" size={20} color={colors.textSubtle} />
                     <Text style={[styles.resetText, { color: colors.textSubtle }]}>Reset Closet</Text>
                 </Pressable>
 
-                <Text style={[styles.version, { color: colors.textMuted }]}>digidrobe v1.0.1</Text>
+                <Text style={[styles.version, { color: colors.textMuted }]}>digidrobe v1.1.0</Text>
             </ScrollView>
+
+            {/* Edit Profile Modal */}
+            <Modal visible={showEditModal} transparent animationType="fade">
+                <Pressable style={styles.modalOverlay} onPress={() => setShowEditModal(false)}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                        <Text style={[styles.modalTitle, { color: colors.textMain }]}>Edit Profile</Text>
+                        <TextInput
+                            style={[styles.modalInput, { backgroundColor: colors.background, color: colors.textMain, borderColor: colors.border }]}
+                            value={editingName}
+                            onChangeText={setEditingName}
+                            placeholder="Your name"
+                            placeholderTextColor={colors.textMuted}
+                            autoFocus
+                        />
+                        <View style={styles.modalButtons}>
+                            <Pressable style={[styles.modalButton, { borderColor: colors.border }]} onPress={() => setShowEditModal(false)}>
+                                <Text style={[styles.modalButtonText, { color: colors.textSubtle }]}>Cancel</Text>
+                            </Pressable>
+                            <Pressable style={[styles.modalButton, { backgroundColor: colors.primary }]} onPress={handleSaveProfile}>
+                                <Text style={[styles.modalButtonText, { color: '#131b0e' }]}>Save</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -258,5 +377,44 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: Typography.fontSize.xs,
         marginTop: Spacing['2xl'],
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.xl,
+    },
+    modalContent: {
+        width: '100%',
+        borderRadius: BorderRadius['2xl'],
+        padding: Spacing.xl,
+    },
+    modalTitle: {
+        fontSize: Typography.fontSize.lg,
+        fontWeight: Typography.fontWeight.bold,
+        marginBottom: Spacing.lg,
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.lg,
+        fontSize: Typography.fontSize.base,
+        marginBottom: Spacing.lg,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: Spacing.md,
+    },
+    modalButton: {
+        flex: 1,
+        paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        borderWidth: 1,
+    },
+    modalButtonText: {
+        fontSize: Typography.fontSize.base,
+        fontWeight: Typography.fontWeight.semibold,
     },
 });

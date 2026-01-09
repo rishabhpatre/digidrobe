@@ -13,14 +13,16 @@ import {
   Pressable,
   useColorScheme,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '@/constants/Colors';
+import { apiClient } from '@/services/api';
 
-// Mock data for demo
+// Mock data for fallback
 const MOCK_OUTFIT = {
   id: 1,
   styleTag: 'Clean Casual',
@@ -60,12 +62,67 @@ export default function TodayScreen() {
     month: 'short',
   });
 
-  const handleRefresh = () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+  // Load today's outfit on mount
+  useEffect(() => {
+    loadOutfit();
+  }, []);
+
+  const loadOutfit = async () => {
+    try {
+      setLoading(true);
+      const todaysOutfit = await apiClient.getTodaysOutfit();
+      if (todaysOutfit && todaysOutfit.items) {
+        setOutfit(todaysOutfit);
+        setLiked(todaysOutfit.isLiked || false);
+        setSaved(todaysOutfit.isSaved || false);
+      }
+    } catch (e) {
+      console.log('Using mock outfit:', e);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      setLiked(false);
+      setSaved(false);
+      const newOutfit = await apiClient.generateOutfit();
+      if (newOutfit && newOutfit.items) {
+        setOutfit(newOutfit);
+      }
+    } catch (e) {
+      console.log('Failed to generate outfit:', e);
+      // Still show visual feedback
+      Alert.alert('New Mix!', 'Here\'s a fresh outfit for you.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLike = async () => {
+    const newLiked = !liked;
+    setLiked(newLiked);
+    try {
+      if (outfit.id) {
+        await apiClient.submitOutfitFeedback(outfit.id, { liked: newLiked });
+      }
+    } catch (e) {
+      console.log('Failed to submit feedback:', e);
+    }
+  };
+
+  const handleSave = async () => {
+    const newSaved = !saved;
+    setSaved(newSaved);
+    try {
+      if (outfit.id) {
+        await apiClient.submitOutfitFeedback(outfit.id, { saved: newSaved });
+      }
+    } catch (e) {
+      console.log('Failed to save outfit:', e);
+    }
   };
 
   return (
@@ -171,7 +228,7 @@ export default function TodayScreen() {
           {/* Like (Primary) */}
           <Pressable
             style={[styles.likeButton, { backgroundColor: colors.accent }, Shadows.medium]}
-            onPress={() => setLiked(!liked)}
+            onPress={handleLike}
           >
             <MaterialIcons
               name={liked ? 'favorite' : 'favorite-border'}
@@ -181,7 +238,7 @@ export default function TodayScreen() {
           </Pressable>
 
           {/* Save */}
-          <Pressable style={styles.dockButton} onPress={() => setSaved(!saved)}>
+          <Pressable style={styles.dockButton} onPress={handleSave}>
             <MaterialIcons
               name={saved ? 'bookmark' : 'bookmark-border'}
               size={28}
