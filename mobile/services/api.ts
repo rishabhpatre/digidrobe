@@ -164,6 +164,14 @@ class ApiClient {
     async getOutfitHistory(limit = 20): Promise<Outfit[]> {
         return this.request(`/outfit/history?limit=${limit}`);
     }
+
+    // URL Image Extraction
+    async extractImageFromUrl(url: string): Promise<{ success: boolean; imageUrl: string; sourceUrl: string }> {
+        return this.request('/extract-image', {
+            method: 'POST',
+            body: JSON.stringify({ url }),
+        });
+    }
 }
 
 export const apiClient = new ApiClient();

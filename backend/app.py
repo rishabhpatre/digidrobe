@@ -205,6 +205,123 @@ def process_image():
     return jsonify(result)
 
 
+@app.route('/api/extract-image', methods=['POST'])
+def extract_image_from_url():
+    """
+    Extract the main product image from a shopping page URL.
+    Supports most major e-commerce sites.
+    """
+    import requests
+    from bs4 import BeautifulSoup
+    import re
+    
+    data = request.json
+    url = data.get('url', '').strip()
+    
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+    
+    # Add protocol if missing
+    if not url.startswith('http'):
+        url = 'https://' + url
+    
+    try:
+        # Fetch the page with a browser-like user agent
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        image_url = None
+        
+        # Strategy 1: Look for Open Graph image (most reliable for products)
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content'):
+            image_url = og_image['content']
+        
+        # Strategy 2: Look for Twitter card image
+        if not image_url:
+            twitter_image = soup.find('meta', attrs={'name': 'twitter:image'})
+            if twitter_image and twitter_image.get('content'):
+                image_url = twitter_image['content']
+        
+        # Strategy 3: Look for product-specific image patterns
+        if not image_url:
+            # Common product image selectors
+            selectors = [
+                'img[data-zoom-image]',
+                'img.product-image',
+                'img.main-image',
+                'img#landingImage',  # Amazon
+                'img[class*="product"]',
+                'img[class*="gallery"]',
+                'picture source',
+                '.product-gallery img',
+                '.pdp-image img',
+            ]
+            for selector in selectors:
+                element = soup.select_one(selector)
+                if element:
+                    image_url = element.get('src') or element.get('data-src') or element.get('srcset', '').split()[0]
+                    if image_url:
+                        break
+        
+        # Strategy 4: Find the largest image on the page
+        if not image_url:
+            images = soup.find_all('img')
+            best_img = None
+            best_size = 0
+            
+            for img in images:
+                src = img.get('src') or img.get('data-src', '')
+                if not src or 'logo' in src.lower() or 'icon' in src.lower():
+                    continue
+                
+                # Check for size hints
+                width = img.get('width', '0')
+                height = img.get('height', '0')
+                try:
+                    size = int(re.sub(r'[^\d]', '', str(width))) * int(re.sub(r'[^\d]', '', str(height)))
+                except:
+                    size = 0
+                
+                if size > best_size:
+                    best_size = size
+                    best_img = src
+            
+            if best_img:
+                image_url = best_img
+        
+        if not image_url:
+            return jsonify({'error': 'Could not find product image on this page'}), 404
+        
+        # Make relative URLs absolute
+        if image_url.startswith('//'):
+            image_url = 'https:' + image_url
+        elif image_url.startswith('/'):
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            image_url = f"{parsed.scheme}://{parsed.netloc}{image_url}"
+        
+        return jsonify({
+            'success': True,
+            'imageUrl': image_url,
+            'sourceUrl': url
+        })
+        
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Request timed out'}), 408
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'Failed to fetch URL: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Failed to extract image: {str(e)}'}), 500
+
+
 @app.route('/api/outfit/today', methods=['GET'])
 def get_todays_outfit():
     """Get today's recommended outfit"""

@@ -14,6 +14,7 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -37,6 +38,8 @@ export default function AddItemScreen() {
     const [tags, setTags] = useState<Tag[]>([]);
     const [processedData, setProcessedData] = useState<ProcessedImage | null>(null);
     const [itemName, setItemName] = useState('');
+    const [urlInput, setUrlInput] = useState('');
+    const [fetchingUrl, setFetchingUrl] = useState(false);
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -74,6 +77,33 @@ export default function AddItemScreen() {
         if (!result.canceled && result.assets[0]) {
             setImage(result.assets[0].uri);
             processImage(result.assets[0].uri);
+        }
+    };
+
+    const fetchFromUrl = async () => {
+        if (!urlInput.trim()) {
+            Alert.alert('Enter URL', 'Please paste a shopping link first.');
+            return;
+        }
+
+        setFetchingUrl(true);
+        try {
+            const result = await apiClient.extractImageFromUrl(urlInput.trim());
+            if (result.success && result.imageUrl) {
+                setImage(result.imageUrl);
+                // Set mock tags since we can't process a remote URL directly
+                setTags([
+                    { id: '1', label: 'tops', icon: 'checkroom' },
+                    { id: '2', label: 'casual', icon: 'style' },
+                ]);
+                setItemName('new item');
+                setUrlInput('');
+            }
+        } catch (error: any) {
+            console.error('URL fetch failed:', error);
+            Alert.alert('Error', 'Could not extract image from this URL. Try a different link.');
+        } finally {
+            setFetchingUrl(false);
         }
     };
 
@@ -198,7 +228,7 @@ export default function AddItemScreen() {
                     )}
                 </Pressable>
 
-                {/* Camera/Gallery buttons */}
+                {/* Camera/Gallery/URL buttons */}
                 {!image && (
                     <View style={styles.captureButtons}>
                         <Pressable
@@ -215,6 +245,37 @@ export default function AddItemScreen() {
                             <MaterialIcons name="photo-library" size={24} color={colors.textMain} />
                             <Text style={[styles.captureText, { color: colors.textMain }]}>Gallery</Text>
                         </Pressable>
+                    </View>
+                )}
+
+                {/* URL Input */}
+                {!image && (
+                    <View style={styles.urlSection}>
+                        <Text style={[styles.urlLabel, { color: colors.textSubtle }]}>OR PASTE A SHOPPING LINK</Text>
+                        <View style={[styles.urlInputRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                            <MaterialIcons name="link" size={20} color={colors.textMuted} />
+                            <TextInput
+                                style={[styles.urlInput, { color: colors.textMain }]}
+                                placeholder="https://zara.com/..."
+                                placeholderTextColor={colors.textMuted}
+                                value={urlInput}
+                                onChangeText={setUrlInput}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                keyboardType="url"
+                            />
+                            <Pressable
+                                style={[styles.fetchButton, { backgroundColor: colors.primary }]}
+                                onPress={fetchFromUrl}
+                                disabled={fetchingUrl}
+                            >
+                                {fetchingUrl ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <MaterialIcons name="arrow-forward" size={18} color="#fff" />
+                                )}
+                            </Pressable>
+                        </View>
                     </View>
                 )}
 
@@ -442,5 +503,37 @@ const styles = StyleSheet.create({
     fixBackground: {
         textAlign: 'center',
         fontSize: Typography.fontSize.sm,
+    },
+    urlSection: {
+        marginTop: Spacing.xl,
+        paddingHorizontal: Spacing.md,
+    },
+    urlLabel: {
+        fontSize: Typography.fontSize.xs,
+        fontWeight: Typography.fontWeight.semibold,
+        letterSpacing: 1,
+        marginBottom: Spacing.sm,
+        textAlign: 'center',
+    },
+    urlInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: BorderRadius.xl,
+        paddingLeft: Spacing.md,
+        borderWidth: 1,
+        gap: Spacing.sm,
+    },
+    urlInput: {
+        flex: 1,
+        paddingVertical: Spacing.md,
+        fontSize: Typography.fontSize.base,
+    },
+    fetchButton: {
+        width: 44,
+        height: 44,
+        borderRadius: BorderRadius.lg,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 4,
     },
 });
