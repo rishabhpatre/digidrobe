@@ -208,25 +208,28 @@ class OutfitEngine:
         if not items:
             return None
         
-        ref_color = reference_item.get('primaryColor', '').lower()
-        ref_style = reference_item.get('style', 'casual')
+        # Safe getters
+        ref_color = (reference_item.get('primaryColor') or '').lower()
+        ref_style = (reference_item.get('style') or 'casual')
         
         scored_items = []
         
         for item in items:
             score = 0
-            item_color = item.get('primaryColor', '').lower()
-            item_style = item.get('style', 'casual')
+            # Safe getters for item attributes
+            item_color = (item.get('primaryColor') or '').lower()
+            item_style = (item.get('style') or 'casual')
             
             # Color harmony scoring
-            if item_color in self.NEUTRAL_COLORS:
-                score += 3  # Neutrals always work
-            elif ref_color in self.NEUTRAL_COLORS:
-                score += 2  # Pairs well with neutral
-            elif item_color in self.COMPLEMENTARY_PAIRS.get(ref_color, []):
-                score += 4  # Complementary colors
-            elif item_color == ref_color:
-                score += 1  # Same color (monochrome)
+            if item_color and ref_color:
+                if item_color in self.NEUTRAL_COLORS:
+                    score += 3  # Neutrals always work
+                elif ref_color in self.NEUTRAL_COLORS:
+                    score += 2  # Pairs well with neutral
+                elif item_color in self.COMPLEMENTARY_PAIRS.get(ref_color, []):
+                    score += 4  # Complementary colors
+                elif item_color == ref_color:
+                    score += 1  # Same color (monochrome)
             
             # Style compatibility
             if item_style in self.STYLE_COMPATIBILITY.get(ref_style, [ref_style]):
@@ -240,6 +243,10 @@ class OutfitEngine:
             if item.get('wearCount', 0) < 3:
                 score += 1
             
+            # Prioritize new items! (wearCount 0)
+            if item.get('wearCount', 0) == 0:
+                score += 2
+            
             scored_items.append((item, score))
         
         # Sort by score descending
@@ -248,6 +255,7 @@ class OutfitEngine:
         # Pick from top candidates
         top_candidates = scored_items[:min(3, len(scored_items))]
         if top_candidates:
+            # Weighted random choice? No, just random from top 3
             return random.choice(top_candidates)[0]
         
         return random.choice(items)
