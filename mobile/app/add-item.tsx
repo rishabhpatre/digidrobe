@@ -42,6 +42,16 @@ export default function AddItemScreen() {
     const [itemName, setItemName] = useState('');
     const [urlInput, setUrlInput] = useState('');
     const [fetchingUrl, setFetchingUrl] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<string>('tops');
+    const [isFromUrl, setIsFromUrl] = useState(false);
+
+    const CATEGORIES = [
+        { id: 'tops', label: 'Top', icon: 'checkroom' },
+        { id: 'bottoms', label: 'Bottom', icon: 'straighten' },
+        { id: 'layers', label: 'Layer', icon: 'layers' },
+        { id: 'shoes', label: 'Shoes', icon: 'directions-walk' },
+        { id: 'accessories', label: 'Accessory', icon: 'watch' },
+    ];
 
     const pickImage = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -93,10 +103,10 @@ export default function AddItemScreen() {
             const result = await apiClient.extractImageFromUrl(urlInput.trim());
             if (result.success && result.imageUrl) {
                 setImage(result.imageUrl);
-                // Set mock tags since we can't process a remote URL directly
+                setIsFromUrl(true);
+                // Don't set category - let user pick manually
                 setTags([
-                    { id: '1', label: 'tops', icon: 'checkroom' },
-                    { id: '2', label: 'casual', icon: 'style' },
+                    { id: 'style', label: 'casual', icon: 'style' },
                 ]);
                 setItemName('new item');
                 setUrlInput('');
@@ -165,9 +175,14 @@ export default function AddItemScreen() {
 
         try {
             // Create the clothing item in the backend
+            // Use selectedCategory for URL imports, otherwise use AI-detected category
+            const category = isFromUrl
+                ? selectedCategory
+                : (processedData?.category || tags.find(t => t.id === 'cat')?.label || 'tops');
+
             const itemData = {
                 name: itemName || 'New Item',
-                category: processedData?.category || tags.find(t => t.id === 'cat')?.label || 'tops',
+                category: category,
                 primaryColor: processedData?.primaryColor || tags.find(t => t.id === 'color1')?.label,
                 secondaryColor: processedData?.secondaryColor,
                 style: processedData?.style || tags.find(t => t.id === 'style')?.label || 'casual',
@@ -324,6 +339,40 @@ export default function AddItemScreen() {
                                     <MaterialIcons name="add" size={16} color={colors.textSubtle} />
                                     <Text style={[styles.tagText, { color: colors.textSubtle }]}>tag</Text>
                                 </Pressable>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Category Picker for URL imports */}
+                    {image && isFromUrl && (
+                        <View style={styles.categorySection}>
+                            <Text style={[styles.categoryLabel, { color: colors.textSubtle }]}>SELECT CATEGORY</Text>
+                            <View style={styles.categoryRow}>
+                                {CATEGORIES.map((cat) => (
+                                    <Pressable
+                                        key={cat.id}
+                                        style={[
+                                            styles.categoryChip,
+                                            {
+                                                backgroundColor: selectedCategory === cat.id ? colors.primary : colors.surface,
+                                                borderColor: selectedCategory === cat.id ? colors.primary : colors.border,
+                                            }
+                                        ]}
+                                        onPress={() => setSelectedCategory(cat.id)}
+                                    >
+                                        <MaterialIcons
+                                            name={cat.icon as any}
+                                            size={16}
+                                            color={selectedCategory === cat.id ? '#fff' : colors.textSubtle}
+                                        />
+                                        <Text style={[
+                                            styles.categoryChipText,
+                                            { color: selectedCategory === cat.id ? '#fff' : colors.textMain }
+                                        ]}>
+                                            {cat.label}
+                                        </Text>
+                                    </Pressable>
+                                ))}
                             </View>
                         </View>
                     )}
@@ -553,6 +602,34 @@ const styles = StyleSheet.create({
     },
     dividerText: {
         marginHorizontal: Spacing.md,
+        fontSize: Typography.fontSize.sm,
+        fontWeight: Typography.fontWeight.medium,
+    },
+    categorySection: {
+        marginTop: Spacing.xl,
+        paddingHorizontal: Spacing.xl,
+    },
+    categoryLabel: {
+        fontSize: Typography.fontSize.xs,
+        fontWeight: Typography.fontWeight.semibold,
+        letterSpacing: 1,
+        marginBottom: Spacing.sm,
+    },
+    categoryRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.sm,
+    },
+    categoryChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.full,
+        borderWidth: 1,
+        gap: Spacing.xs,
+    },
+    categoryChipText: {
         fontSize: Typography.fontSize.sm,
         fontWeight: Typography.fontWeight.medium,
     },
