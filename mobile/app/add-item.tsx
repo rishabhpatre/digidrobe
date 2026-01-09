@@ -197,6 +197,10 @@ export default function AddItemScreen() {
             const newTags: Tag[] = [];
             if (result.category) {
                 newTags.push({ id: 'cat', label: result.category, icon: 'checkroom' });
+                // Auto-select category in picker
+                if (['tops', 'bottoms', 'layers', 'shoes', 'accessories'].includes(result.category)) {
+                    setSelectedCategory(result.category);
+                }
             }
             if (result.primaryColor) {
                 newTags.push({ id: 'color1', label: result.primaryColor, icon: 'palette' });
@@ -239,10 +243,9 @@ export default function AddItemScreen() {
 
         try {
             // Create the clothing item in the backend
-            // Use selectedCategory for URL imports, otherwise use AI-detected category
-            const category = isFromUrl
-                ? selectedCategory
-                : (processedData?.category || tags.find(t => t.id === 'cat')?.label || 'tops');
+            // Create the clothing item in the backend
+            // Use selectedCategory for all imports (AI auto-selects, user can override)
+            const category = selectedCategory;
 
             const itemData = {
                 name: itemName || 'New Item',
@@ -407,8 +410,8 @@ export default function AddItemScreen() {
                         </View>
                     )}
 
-                    {/* Category Picker for URL imports */}
-                    {image && isFromUrl && (
+                    {/* Category Picker for ALL imports */}
+                    {image && (
                         <View style={styles.categorySection}>
                             <Text style={[styles.categoryLabel, { color: colors.textSubtle }]}>SELECT CATEGORY</Text>
                             <View style={styles.categoryRow}>
