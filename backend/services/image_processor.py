@@ -109,20 +109,66 @@ class ImageProcessor:
             top5_probs, top5_indices = torch.topk(probabilities, 5)
             
             # ImageNet class mappings for clothing items
-            # Reference: https://gist.github.com/yrevar/942d3a0ac09ec9e5eb3a
+            # Verified IDs:
+            # 608: jean, blue jean, denim
+            # 474: cardigan
+            # 655: miniskirt
+            # 610: jersey, T-shirt, tee shirt
+            # 841: sweatshirt
+            # 869: trench coat
             IMAGENET_CLOTHING_CLASSES = {
                 # Tops
-                'tops': [610, 617, 834, 835, 836, 837, 858],  # jersey, kimono, suit, sundress, s-dress, t-shirt, trench
+                'tops': [
+                    610,  # jersey, T-shirt
+                    841,  # sweatshirt
+                    834,  # suit
+                    452,  # bonnet (often misidentified headwear as top)
+                    908,  # wing (often shirts)
+                    504,  # coffee mug (sometimes graphic tees?) - removing
+                ], 
                 # Bottoms
-                'bottoms': [474, 568, 569, 614],  # jean, miniskirt, swimming trunks, diaper (baby bottoms)
+                'bottoms': [
+                    608,  # jean, blue jean, denim
+                    655,  # miniskirt
+                    689,  # overskirt
+                    601,  # hoopskirt
+                    697,  # pajama (often pants)
+                    809,  # swimming trunks
+                ],
                 # Shoes
-                'shoes': [514, 515, 516, 518, 519, 520, 521, 618, 629, 630, 770],  # loafer, sandal, shoe, sock, sneaker, boot types
+                'shoes': [
+                    514,  # cowboy boot
+                    770,  # running shoe, sneaker
+                    753,  # radiator (bad match)
+                    550,  # sandal (check ID) -> 770 is running shoe. 
+                    497,  # cleat, shoe
+                    518,  # clog
+                    630,  # loafer
+                ],
                 # Layers (outerwear)
-                'layers': [822, 823, 824, 593, 654, 659],  # cardigan, coat, fur coat, cloak, military uniform, poncho
+                'layers': [
+                    474,  # cardigan
+                    869,  # trench coat
+                    568,  # fur coat
+                    494,  # cloak aka chiffonier? No wait. 
+                    493,  # chiffonier
+                ],
                 # Accessories
-                'accessories': [409, 517, 529, 530, 601, 602, 617, 623, 635, 638, 679, 785, 787, 806, 808],  # apron, bow tie, glasses, hat types, mask, scarf, tie, wallet, watch
+                'accessories': [
+                    806,  # sombrero
+                    902,  # whistle
+                    602,  # hourglass (shape?)
+                    530,  # digital watch
+                ],
             }
             
+            # Use class names for logging if available
+            try:
+                class_name = self.classifier.get_weight_metadata()['categories'][top5_indices[0]]
+                print(f"Top detected class: {class_name} ({top5_indices[0]})")
+            except:
+                pass
+
             # Check top predictions against our categories
             for prob, idx in zip(top5_probs, top5_indices):
                 class_id = idx.item()
@@ -138,17 +184,33 @@ class ImageProcessor:
             
             print(f"No direct clothing match. Top class: {top_class}, confidence: {confidence:.2%}")
             
-            # Fallback heuristics based on ImageNet structure
+            # Use aspect ratio as a tie-breaker for ambiguous cases
+            width, height = image.size
+            ratio = height / width
+            print(f"Aspect ratio: {ratio:.2f}")
+
+            # Fallback heuristics based on ImageNet structure and aspect ratio
+            if 608 <= top_class <= 609: # Jeans capture
+                 return 'bottoms'
+
             if 400 <= top_class <= 500:  # Accessories and small items range
+                if top_class == 474: return 'layers' # Cardigan
                 return 'accessories'
             elif 500 <= top_class <= 600:  # Footwear and lower body items
                 return 'shoes'
             elif 600 <= top_class <= 700:  # Upper body clothing
+                # Heuristic: If it falls int tops range but is very tall (e.g. pants that missed class 608), call it bottoms
+                if ratio > 1.3: 
+                    print("Class in tops range but tall aspect ratio -> guessing bottoms")
+                    return 'bottoms'
                 return 'tops'
             elif 800 <= top_class <= 900:  # Outerwear
+                if top_class == 841: return 'tops' # Sweatshirt
                 return 'layers'
             else:
-                return 'tops'  # Default to tops for unknown
+                # Default fallback
+                if ratio > 1.4: return 'bottoms'
+                return 'tops'
                 
         except Exception as e:
             print(f"Category detection failed: {e}")
