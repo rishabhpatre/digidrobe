@@ -223,7 +223,16 @@ export default function TodayScreen() {
         <View style={[styles.outfitCard, { backgroundColor: colors.surface }, Shadows.medium]}>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+              <View style={styles.loadingContent}>
+                <MaterialIcons name="checkroom" size={48} color={colors.primary} style={{ marginBottom: 16 }} />
+                <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: 16 }} />
+                <Text style={[styles.loadingTitle, { color: colors.textMain }]}>
+                  Curating your perfect look...
+                </Text>
+                <Text style={[styles.loadingSubtitle, { color: colors.textSubtle }]}>
+                  Matching colors, styles & weather
+                </Text>
+              </View>
             </View>
           ) : (
             <>
@@ -409,6 +418,20 @@ const styles = StyleSheet.create({
     height: 400,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingContent: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  loadingTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  loadingSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    textAlign: 'center',
   },
   imageGrid: {
     padding: 4,
