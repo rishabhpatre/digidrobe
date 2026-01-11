@@ -231,6 +231,22 @@ def extract_image_from_url():
     if not url.startswith('http'):
         url = 'https://' + url
     
+    # EARLY RETURN for Myntra - skip page fetch (they block scrapers)
+    if 'myntra.com' in url:
+        # Extract product ID from URL (e.g., 30790066 from .../30790066/buy)
+        product_match = re.search(r'/(\d{6,})', url)
+        if product_match:
+            product_id = product_match.group(1)
+            # Myntra image CDN pattern - high quality product image
+            image_url = f'https://assets.myntassets.com/h_720,q_90,w_540/v1/assets/images/{product_id}/2024/1/1/1-1.jpg'
+            return jsonify({
+                'success': True,
+                'imageUrl': image_url,
+                'sourceUrl': url
+            })
+        else:
+            return jsonify({'error': 'Could not extract product ID from Myntra URL'}), 400
+    
     try:
         # Fetch the page with a browser-like user agent
         headers = {
@@ -245,10 +261,20 @@ def extract_image_from_url():
         
         image_url = None
         
+        # Special handling for Myntra URLs - construct direct image URL
+        if 'myntra.com' in url:
+            # Extract product ID from URL (e.g., 30790066 from .../30790066/buy)
+            product_match = re.search(r'/(\d{6,})', url)
+            if product_match:
+                product_id = product_match.group(1)
+                # Myntra image CDN pattern
+                image_url = f'https://assets.myntassets.com/h_720,q_90,w_540/v1/assets/images/{product_id}/2024/1/1/1-1.jpg'
+        
         # Strategy 1: Look for Open Graph image (most reliable for products)
-        og_image = soup.find('meta', property='og:image')
-        if og_image and og_image.get('content'):
-            image_url = og_image['content']
+        if not image_url:
+            og_image = soup.find('meta', property='og:image')
+            if og_image and og_image.get('content'):
+                image_url = og_image['content']
         
         # Strategy 2: Look for Twitter card image
         if not image_url:
