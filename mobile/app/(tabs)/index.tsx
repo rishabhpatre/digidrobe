@@ -3,7 +3,7 @@
  * Matches the "Today Screen" design mockup
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Image,
   Pressable,
   useColorScheme,
-  ActivityIndicator,
+  Animated,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +23,38 @@ import { Colors, Spacing, BorderRadius, Shadows, Typography } from '@/constants/
 import { apiClient, getImageUrl } from '@/services/api';
 
 // No more mock data - we'll show real user clothes only
+
+// Animated loading icon component
+const AnimatedLoadingIcon = ({ name, delay, color }: { name: string; delay: number; color: string }) => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+  const scale = useRef(new Animated.Value(0.8)).current;
+
+  useEffect(() => {
+    const animate = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.parallel([
+            Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+            Animated.timing(scale, { toValue: 1.1, duration: 400, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(opacity, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+            Animated.timing(scale, { toValue: 0.8, duration: 400, useNativeDriver: true }),
+          ]),
+          Animated.delay(600 - delay), // Sync the total duration
+        ])
+      ).start();
+    };
+    animate();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ scale }], marginHorizontal: 12 }}>
+      <MaterialIcons name={name as any} size={40} color={color} />
+    </Animated.View>
+  );
+};
 
 export default function TodayScreen() {
   const colorScheme = useColorScheme();
@@ -201,8 +233,12 @@ export default function TodayScreen() {
           {loading ? (
             <View style={styles.loadingContainer}>
               <View style={styles.loadingContent}>
-                <MaterialIcons name="checkroom" size={48} color={colors.primary} style={{ marginBottom: 16 }} />
-                <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: 16 }} />
+                {/* Animated Icons Row */}
+                <View style={styles.animatedIconsRow}>
+                  <AnimatedLoadingIcon name="checkroom" delay={0} color={colors.primary} />
+                  <AnimatedLoadingIcon name="straighten" delay={200} color={colors.accent} />
+                  <AnimatedLoadingIcon name="directions-walk" delay={400} color={colors.primary} />
+                </View>
                 <Text style={[styles.loadingTitle, { color: colors.textMain }]}>
                   Curating your perfect look...
                 </Text>
@@ -417,6 +453,12 @@ const styles = StyleSheet.create({
   loadingContent: {
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
+  },
+  animatedIconsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   loadingTitle: {
     fontSize: Typography.fontSize.lg,
