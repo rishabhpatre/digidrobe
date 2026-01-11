@@ -25,7 +25,7 @@ import { router } from 'expo-router';
 
 import { Colors, Spacing, BorderRadius, Shadows, Typography, Categories } from '@/constants/Colors';
 import { useWardrobe } from '@/services/hooks';
-import { apiClient } from '@/services/api';
+import { apiClient, getImageUrl } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 const ITEM_WIDTH = (width - Spacing.xl * 2 - Spacing.lg) / 2;
@@ -90,7 +90,7 @@ export default function ClosetScreen() {
         >
             <View style={styles.imageContainer}>
                 <Image
-                    source={{ uri: item.imagePath || 'https://via.placeholder.com/200' }}
+                    source={{ uri: getImageUrl(item.imagePath) || 'https://via.placeholder.com/200' }}
                     style={styles.itemImage}
                     resizeMode="cover"
                 />

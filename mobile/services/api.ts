@@ -47,6 +47,32 @@ interface ProcessedImage {
     tags: string[];
 }
 
+/**
+ * Convert an image path to a full HTTP URL
+ * Handles: relative paths (uploads/...), external URLs, and mobile file URIs
+ */
+export function getImageUrl(imagePath: string | undefined): string | undefined {
+    if (!imagePath) return undefined;
+
+    // Already a full URL (http/https)
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return imagePath;
+    }
+
+    // Mobile file URI - keep as-is (for local display only, but won't work across devices)
+    if (imagePath.startsWith('file://')) {
+        return imagePath;
+    }
+
+    // Relative server path (e.g., 'uploads/abc.png') - prepend API base
+    if (imagePath.startsWith('uploads/')) {
+        return `${API_BASE_URL}/${imagePath}`;
+    }
+
+    // Unknown format - try prepending base URL
+    return `${API_BASE_URL}/${imagePath}`;
+}
+
 class ApiClient {
     private baseUrl: string;
 

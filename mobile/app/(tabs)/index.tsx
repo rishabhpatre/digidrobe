@@ -20,7 +20,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '@/constants/Colors';
-import { apiClient } from '@/services/api';
+import { apiClient, getImageUrl } from '@/services/api';
 
 // Mock data for fallback
 const MOCK_OUTFIT = {
@@ -232,7 +232,7 @@ export default function TodayScreen() {
                 {/* Layer/Top (Large) */}
                 {outfit.items.layer && (
                   <Image
-                    source={{ uri: outfit.items.layer.imagePath }}
+                    source={{ uri: getImageUrl(outfit.items.layer.imagePath) }}
                     style={styles.mainImage}
                     resizeMode="cover"
                   />
@@ -242,14 +242,14 @@ export default function TodayScreen() {
                 <View style={styles.imageRow}>
                   {outfit.items.top && (
                     <Image
-                      source={{ uri: outfit.items.top.imagePath }}
+                      source={{ uri: getImageUrl(outfit.items.top.imagePath) }}
                       style={styles.smallImage}
                       resizeMode="cover"
                     />
                   )}
                   {outfit.items.bottom && (
                     <Image
-                      source={{ uri: outfit.items.bottom.imagePath }}
+                      source={{ uri: getImageUrl(outfit.items.bottom.imagePath) }}
                       style={styles.smallImage}
                       resizeMode="cover"
                     />
@@ -259,7 +259,7 @@ export default function TodayScreen() {
                 {/* Shoes */}
                 {outfit.items.shoes && (
                   <Image
-                    source={{ uri: outfit.items.shoes.imagePath }}
+                    source={{ uri: getImageUrl(outfit.items.shoes.imagePath) }}
                     style={styles.shoesImage}
                     resizeMode="cover"
                   />

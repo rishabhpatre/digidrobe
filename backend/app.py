@@ -4,7 +4,7 @@ AI-powered wardrobe management and outfit recommendations
 """
 
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
@@ -103,6 +103,12 @@ class Outfit(db.Model):
 def health_check():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'service': 'digidrobe-api'})
+
+
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    """Serve uploaded images"""
+    return send_from_directory(UPLOAD_DIR, filename)
 
 
 @app.route('/api/wardrobe', methods=['GET'])
