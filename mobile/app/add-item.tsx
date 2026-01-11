@@ -92,16 +92,39 @@ export default function AddItemScreen() {
         }
     };
 
+    /**
+     * Extract a URL from text that may contain surrounding metadata
+     * Examples:
+     * - "Check out this: https://zara.com/shirt Shop now!" -> "https://zara.com/shirt"
+     * - "https://example.com" -> "https://example.com"
+     */
+    const extractUrlFromText = (text: string): string | null => {
+        // Regex to match URLs starting with http:// or https://
+        // Stops at whitespace, quotes, or common delimiters
+        const urlRegex = /https?:\/\/[^\s"'<>]+/gi;
+        const matches = text.match(urlRegex);
+        return matches && matches.length > 0 ? matches[0] : null;
+    };
+
     const fetchFromUrl = async () => {
-        if (!urlInput.trim()) {
+        const rawInput = urlInput.trim();
+        if (!rawInput) {
             Alert.alert('Enter URL', 'Please paste a shopping link first.');
+            return;
+        }
+
+        // Extract URL from text (handles metadata like "Check out this: https://...")
+        const extractedUrl = extractUrlFromText(rawInput);
+
+        if (!extractedUrl) {
+            Alert.alert('No URL Found', 'Could not find a valid URL in the pasted text. Make sure it starts with https://');
             return;
         }
 
         setFetchingUrl(true);
         try {
             // Step 1: Extract image URL from the page
-            const result = await apiClient.extractImageFromUrl(urlInput.trim());
+            const result = await apiClient.extractImageFromUrl(extractedUrl);
 
             if (result.success && result.imageUrl) {
                 // Show analyzing state
