@@ -22,36 +22,13 @@ import { router } from 'expo-router';
 import { Colors, Spacing, BorderRadius, Shadows, Typography } from '@/constants/Colors';
 import { apiClient, getImageUrl } from '@/services/api';
 
-// Mock data for fallback
-const MOCK_OUTFIT = {
-  id: 1,
-  styleTag: 'Clean Casual',
-  description: 'easy, balanced, works today',
-  items: {
-    layer: {
-      name: 'Beige Trench Coat',
-      imagePath: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400',
-    },
-    top: {
-      name: 'White Tee',
-      imagePath: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
-    },
-    bottom: {
-      name: 'Blue Denim',
-      imagePath: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400',
-    },
-    shoes: {
-      name: 'White Sneakers',
-      imagePath: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400',
-    },
-  },
-};
+// No more mock data - we'll show real user clothes only
 
 export default function TodayScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
-  const [outfit, setOutfit] = useState(MOCK_OUTFIT);
-  const [loading, setLoading] = useState(false);
+  const [outfit, setOutfit] = useState<any>(null);
+  const [loading, setLoading] = useState(true);  // Start loading immediately
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [userName, setUserName] = useState('there');
@@ -232,6 +209,24 @@ export default function TodayScreen() {
                 <Text style={[styles.loadingSubtitle, { color: colors.textSubtle }]}>
                   Matching colors, styles & weather
                 </Text>
+              </View>
+            </View>
+          ) : !outfit ? (
+            <View style={styles.loadingContainer}>
+              <View style={styles.loadingContent}>
+                <MaterialIcons name="checkroom" size={48} color={colors.textMuted} style={{ marginBottom: 16 }} />
+                <Text style={[styles.loadingTitle, { color: colors.textMain }]}>
+                  No outfit yet!
+                </Text>
+                <Text style={[styles.loadingSubtitle, { color: colors.textSubtle, marginBottom: 20 }]}>
+                  Add some clothes to your closet and we'll create looks for you
+                </Text>
+                <Pressable
+                  style={[styles.refreshButton, { backgroundColor: colors.primary }]}
+                  onPress={handleRefresh}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '600' }}>Try Again</Text>
+                </Pressable>
               </View>
             </View>
           ) : (
@@ -432,6 +427,11 @@ const styles = StyleSheet.create({
   loadingSubtitle: {
     fontSize: Typography.fontSize.sm,
     textAlign: 'center',
+  },
+  refreshButton: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
   },
   imageGrid: {
     padding: 4,
